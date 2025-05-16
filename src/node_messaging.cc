@@ -27,7 +27,6 @@ using v8::Isolate;
 using v8::Just;
 using v8::JustVoid;
 using v8::Local;
-using v8::LocalVector;
 using v8::Maybe;
 using v8::MaybeLocal;
 using v8::Nothing;
@@ -75,7 +74,7 @@ class DeserializerDelegate : public ValueDeserializer::Delegate {
       Message* m,
       Environment* env,
       const std::vector<BaseObjectPtr<BaseObject>>& host_objects,
-      const LocalVector<SharedArrayBuffer>& shared_array_buffers,
+      const std::vector<Local<SharedArrayBuffer>>& shared_array_buffers,
       const std::vector<CompiledWasmModule>& wasm_modules,
       const std::optional<SharedValueConveyor>& shared_value_conveyor)
       : env_(env),
@@ -130,7 +129,7 @@ class DeserializerDelegate : public ValueDeserializer::Delegate {
  private:
   Environment* env_;
   const std::vector<BaseObjectPtr<BaseObject>>& host_objects_;
-  const LocalVector<SharedArrayBuffer>& shared_array_buffers_;
+  const std::vector<Local<SharedArrayBuffer>>& shared_array_buffers_;
   const std::vector<CompiledWasmModule>& wasm_modules_;
   const std::optional<SharedValueConveyor>& shared_value_conveyor_;
 };
@@ -189,7 +188,7 @@ MaybeLocal<Value> Message::Deserialize(Environment* env,
   }
   transferables_.clear();
 
-  LocalVector<SharedArrayBuffer> shared_array_buffers(env->isolate());
+  std::vector<Local<SharedArrayBuffer>> shared_array_buffers;
   // Attach all transferred SharedArrayBuffers to their new Isolate.
   for (uint32_t i = 0; i < shared_array_buffers_.size(); ++i) {
     Local<SharedArrayBuffer> sab =
@@ -478,7 +477,7 @@ Maybe<bool> Message::Serialize(Environment* env,
   ValueSerializer serializer(env->isolate(), &delegate);
   delegate.serializer = &serializer;
 
-  LocalVector<ArrayBuffer> array_buffers(env->isolate());
+  std::vector<Local<ArrayBuffer>> array_buffers;
   for (uint32_t i = 0; i < transfer_list_v.length(); ++i) {
     Local<Value> entry_val = transfer_list_v[i];
     if (!entry_val->IsObject()) {
@@ -1005,7 +1004,7 @@ static Maybe<bool> ReadIterable(Environment* env,
     return Nothing<bool>();
   if (!next->IsFunction()) return Just(false);
 
-  LocalVector<Value> entries(isolate);
+  std::vector<Local<Value>> entries;
   while (env->can_call_into_js()) {
     Local<Value> result;
     if (!next.As<Function>()->Call(context, iterator, 0, nullptr)
