@@ -43,6 +43,14 @@ TEST_F(PathTest, PathResolve) {
             "\\\\.\\PHYSICALDRIVE0");
   EXPECT_EQ(PathResolve(*env, {"\\\\?\\PHYSICALDRIVE0"}),
             "\\\\?\\PHYSICALDRIVE0");
+  // Extended-length path prefix (\\?\) should be stripped for drive paths
+  EXPECT_EQ(PathResolve(*env, {"\\\\?\\C:\\foo"}), "C:\\foo");
+  EXPECT_EQ(PathResolve(*env, {"\\\\?\\C:\\"}), "C:\\");
+  // Extended-length UNC path prefix (\\?\UNC\) should be stripped
+  EXPECT_EQ(PathResolve(*env, {"\\\\?\\UNC\\server\\share"}),
+            "\\\\server\\share\\");
+  EXPECT_EQ(PathResolve(*env, {"\\\\?\\UNC\\server\\share\\dir"}),
+            "\\\\server\\share\\dir");
 #else
   EXPECT_EQ(PathResolve(*env, {"/var/lib", "../", "file/"}), "/var/file");
   EXPECT_EQ(PathResolve(*env, {"/var/lib", "/../", "file/"}), "/file");

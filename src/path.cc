@@ -98,6 +98,28 @@ constexpr bool IsWindowsDeviceRoot(const char c) noexcept {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
+// Strip Windows extended-length path prefix (\\?\) only when it wraps a
+// drive letter path (\\?\C:\...) or a UNC path (\\?\UNC\...).
+// Device paths like \\?\PHYSICALDRIVE0 are left unchanged.
+// See: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+static void StripExtendedPathPrefix(std::string& path) {
+  if (path.size() >= 4 && path[0] == '\\' && path[1] == '\\' &&
+      path[2] == '?' && path[3] == '\\') {
+    // \\?\C:\ -> C:\ (extended drive path)
+    if (path.size() >= 6 && IsWindowsDeviceRoot(path[4]) && path[5] == ':') {
+      path = path.substr(4);
+      return;
+    }
+    // \\?\UNC\server\share -> \\server\share (extended UNC path)
+    if (path.size() >= 8 && ToLower(path[4]) == 'u' &&
+        ToLower(path[5]) == 'n' && ToLower(path[6]) == 'c' &&
+        path[7] == '\\') {
+      path = "\\\\" + path.substr(8);
+      return;
+    }
+  }
+}
+
 std::string PathResolve(Environment* env,
                         const std::vector<std::string_view>& paths) {
   std::string resolvedDevice = "";
@@ -131,6 +153,10 @@ std::string PathResolve(Environment* env,
         path = resolvedDevice + "\\";
       }
     }
+
+    // Strip extended-length path prefix (\\?\C:\... -> C:\...,
+    // \\?\UNC\... -> \\...) before processing.
+    StripExtendedPathPrefix(path);
 
     const size_t len = path.length();
     int rootEnd = 0;

@@ -37,6 +37,12 @@ const resolveTests = [
       'C:\\foo\\tmp.3\\cycles\\root.js'],
      [['\\\\.\\PHYSICALDRIVE0'], '\\\\.\\PHYSICALDRIVE0'],
      [['\\\\?\\PHYSICALDRIVE0'], '\\\\?\\PHYSICALDRIVE0'],
+     // Extended-length path prefix (\\?\) should be stripped for drive paths
+     [['\\\\?\\C:\\foo'], 'C:\\foo'],
+     [['\\\\?\\C:\\'], 'C:\\'],
+     // Extended-length UNC path prefix (\\?\UNC\) should be stripped
+     [['\\\\?\\UNC\\server\\share'], '\\\\server\\share\\'],
+     [['\\\\?\\UNC\\server\\share\\dir'], '\\\\server\\share\\dir'],
     ],
   ],
   [ path.posix.resolve,
